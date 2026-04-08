@@ -139,19 +139,33 @@ describe("downloadTemplate", () => {
     expect(existsSync(resolve(dir, "src"))).toBe(false);
   });
 
-  it("clone with strategy skip", async () => {
-    const destinationDirectory = resolve(__dirname, ".tmp/cloned-strategy-skip");
+  it("clone with subdir and specific files", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-subdir-files");
+    const { dir } = await downloadTemplate("gh:unjs/giget/templates", {
+      dir: destinationDirectory,
+      files: ["unjs.json"],
+      preferOffline,
+    });
+    expect(existsSync(resolve(dir, "unjs.json"))).toBe(true);
+    expect(existsSync(resolve(dir, "nuxt.json"))).toBe(false);
+  });
+
+  it("clone with strategy skip in non-empty directory", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-strategy-skip-nonempty");
     await mkdir(destinationDirectory, { recursive: true });
     await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
+    await writeFile(resolve(destinationDirectory, "OTHER.txt"), "OTHER");
 
     const { dir } = await downloadTemplate("gh:unjs/giget", {
       dir: destinationDirectory,
-      files: ["README.md"],
+      files: ["README.md", "package.json"],
       strategy: "skip",
       preferOffline,
     });
-    const content = await readFile(resolve(dir, "README.md"), "utf-8");
-    expect(content).toBe("EXISTING");
+    const readme = await readFile(resolve(dir, "README.md"), "utf-8");
+    expect(readme).toBe("EXISTING");
+    expect(existsSync(resolve(dir, "package.json"))).toBe(true);
+    expect(existsSync(resolve(dir, "OTHER.txt"))).toBe(true);
   });
 
   it("clone with strategy overwrite", async () => {

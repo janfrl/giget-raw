@@ -3,6 +3,7 @@ import { mkdtemp, rm as rmAsync, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
+import { createHash } from "node:crypto";
 import { resolve } from "pathe";
 import type { TemplateProvider, TarOutput } from "./types.ts";
 import { debug } from "./_utils.ts";
@@ -10,13 +11,22 @@ import { debug } from "./_utils.ts";
 export const git: TemplateProvider = (input, options) => {
   const parsed = parseGitCloneURI(input);
 
+  // Include subdir and files in version so the cache key is unique
+  let version = parsed.version || "default";
+  if (parsed.subdir || (options.files && options.files.length > 0)) {
+    const hash = createHash("sha256");
+    if (parsed.subdir) {
+      hash.update(parsed.subdir);
+    }
+    if (options.files && options.files.length > 0) {
+      hash.update(options.files.join(","));
+    }
+    version = `${version}-${hash.digest("hex").slice(0, 8)}`;
+  }
+
   return {
     name: parsed.name,
-    // Include subdir in version so the cache key is unique per subdir
-    version:
-      parsed.subdir || options.files
-        ? `${parsed.version || "default"}-${(parsed.subdir || options.files?.join("-") || "").replaceAll("/", "-")}`
-        : parsed.version,
+    version,
     // subdir is handled during clone (sparse checkout) and tar creation,
     // so we don't set it here to avoid double-filtering during extraction
     tar: ({ auth } = {}) => _cloneAndTar(parsed, auth ?? options.auth, options.files),
@@ -173,13 +183,16 @@ async function _cloneAndTar(
       status.update("Fetched.");
     }
 
+    const sparsePaths = [];
     if (files && files.length > 0) {
-      status.update(`Sparse checkout ${files.length} files...`);
-      await gitExecIn(["sparse-checkout", "set", ...files]);
-      await gitExecIn(["checkout"]);
+      sparsePaths.push(...files.map((f) => (parsed.subdir ? join(parsed.subdir, f) : f)));
     } else if (parsed.subdir) {
-      status.update(`Sparse checkout ${parsed.subdir}...`);
-      await gitExecIn(["sparse-checkout", "set", parsed.subdir]);
+      sparsePaths.push(parsed.subdir);
+    }
+
+    if (sparsePaths.length > 0) {
+      status.update(`Sparse checkout ${sparsePaths.length} paths...`);
+      await gitExecIn(["sparse-checkout", "set", ...sparsePaths]);
       await gitExecIn(["checkout"]);
     }
 

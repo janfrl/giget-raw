@@ -1,11 +1,11 @@
 import { createWriteStream } from "node:fs";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { existsSync, readdirSync } from "node:fs";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { resolve, dirname } from "pathe";
 import type { installDependencies } from "nypm";
-import { cacheDirectory, download, debug, normalizeHeaders, sendFetch } from "./_utils.ts";
+import { cacheDirectory, download, debug, normalizeHeaders } from "./_utils.ts";
 import { providers } from "./providers.ts";
 import { registryProvider } from "./registry.ts";
 import type { TemplateInfo, TemplateProvider } from "./types.ts";
@@ -86,53 +86,6 @@ export async function downloadTemplate(
   template.name = (template.name || "template").replace(/[^\da-z-]/gi, "-");
   template.defaultDir = (template.defaultDir || template.name).replace(/[^\da-z-]/gi, "-");
 
-  // Raw download attempt (fast path for specific files if options.files is provided)
-  if (template.raw && Array.isArray(options.files) && options.files.length > 0) {
-    const files = options.files;
-    const cwd = resolve(options.cwd || ".");
-    const destDir = resolve(cwd, options.dir || template.defaultDir);
-    let allFilesDownloadedRaw = true;
-
-    try {
-      for (const filePath of files) {
-        const rawUrl = template.raw(filePath.replace(/^\//, ""));
-        const outPath = resolve(destDir, filePath);
-        await mkdir(dirname(outPath), { recursive: true });
-
-        if (options.strategy !== "skip" || !existsSync(outPath)) {
-          const res = await sendFetch(rawUrl, {
-            validateStatus: true,
-            headers: normalizeHeaders({
-              Authorization: options.auth ? `Bearer ${options.auth}` : undefined,
-              ...template.headers,
-            }),
-          });
-
-          if (res.status >= 400) {
-            allFilesDownloadedRaw = false;
-            debug(
-              `Raw download failed for ${rawUrl} (status: ${res.status}). Falling back to tarball.`,
-            );
-            break; // Exit loop, will proceed to tarball logic outside this block
-          }
-          const buffer = Buffer.from(await res.arrayBuffer());
-          await writeFile(outPath, buffer);
-        }
-      }
-
-      if (allFilesDownloadedRaw) {
-        return {
-          ...template,
-          dir: destDir,
-          source: files.join(", "),
-        };
-      }
-    } catch (error: any) {
-      allFilesDownloadedRaw = false;
-      debug("Raw files download process failed:", error.message, "Falling back to tarball flow.");
-    }
-  }
-
   // Download template source
   const temporaryDirectory = resolve(cacheDirectory(), providerName, template.name);
   const tarPath = resolve(temporaryDirectory, (template.version || template.name) + ".tar.gz");
@@ -194,18 +147,9 @@ export async function downloadTemplate(
     existsSync(extractPath) &&
     readdirSync(extractPath).length > 0
   ) {
-    if (options.strategy === "skip") {
-      return {
-        ...template,
-        dir: extractPath,
-        source,
-      };
-    }
-    if (options.strategy !== "overwrite") {
-      throw new Error(
-        `Destination ${extractPath} already exists and is not empty. Use --force, --strategy=overwrite to overwrite, or --strategy=skip to skip.`,
-      );
-    }
+    throw new Error(
+      `Destination ${extractPath} already exists and is not empty. Use --force, --strategy=overwrite to overwrite, or --strategy=skip to skip.`,
+    );
   }
   await mkdir(extractPath, { recursive: true });
 
@@ -215,23 +159,26 @@ export async function downloadTemplate(
   await extract({
     file: tarPath,
     cwd: extractPath,
+    keep: options.strategy === "skip",
     onReadEntry(entry) {
       entry.path = entry.path.split("/").splice(1).join("/");
-      if (options.files && options.files.length > 0) {
+      if (subdir) {
+        if (entry.path === subdir || entry.path.startsWith(subdir + "/")) {
+          // Rewrite path
+          entry.path = entry.path.slice(subdir.length).replace(/^\//, "");
+        } else {
+          // Skip
+          entry.path = "";
+        }
+      }
+
+      if (entry.path && options.files && options.files.length > 0) {
         for (const file of options.files) {
           if (entry.path === file || entry.path.startsWith(file + "/")) {
             return;
           }
         }
         entry.path = "";
-      } else if (subdir) {
-        if (entry.path.startsWith(subdir + "/")) {
-          // Rewrite path
-          entry.path = entry.path.slice(subdir.length);
-        } else {
-          // Skip
-          entry.path = "";
-        }
       }
     },
   });
