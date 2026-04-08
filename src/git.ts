@@ -13,12 +13,13 @@ export const git: TemplateProvider = (input, options) => {
   return {
     name: parsed.name,
     // Include subdir in version so the cache key is unique per subdir
-    version: parsed.subdir
-      ? `${parsed.version || "default"}-${parsed.subdir.replaceAll("/", "-")}`
-      : parsed.version,
+    version:
+      parsed.subdir || options.files
+        ? `${parsed.version || "default"}-${(parsed.subdir || options.files?.join("-") || "").replaceAll("/", "-")}`
+        : parsed.version,
     // subdir is handled during clone (sparse checkout) and tar creation,
     // so we don't set it here to avoid double-filtering during extraction
-    tar: ({ auth } = {}) => _cloneAndTar(parsed, auth ?? options.auth),
+    tar: ({ auth } = {}) => _cloneAndTar(parsed, auth ?? options.auth, options.files),
   };
 };
 
@@ -111,7 +112,11 @@ export function parseGitCloneURI(input: string, opts: { cwd?: string } = {}) {
 
 type ParsedGitURI = ReturnType<typeof parseGitCloneURI>;
 
-async function _cloneAndTar(parsed: ParsedGitURI, token?: string): Promise<TarOutput> {
+async function _cloneAndTar(
+  parsed: ParsedGitURI,
+  token?: string,
+  files?: string[],
+): Promise<TarOutput> {
   const tmpDir = await mkdtemp(join(tmpdir(), "giget-git-"));
 
   if (token && /[\r\n]/.test(token)) {
@@ -138,7 +143,7 @@ async function _cloneAndTar(parsed: ParsedGitURI, token?: string): Promise<TarOu
 
   try {
     const cloneArgs = ["clone", "--progress", "--depth", "1"];
-    if (parsed.subdir) {
+    if (parsed.subdir || (files && files.length > 0)) {
       cloneArgs.push("--filter=blob:none", "--sparse", "--no-checkout");
     }
     if (parsed.version) {
@@ -168,7 +173,11 @@ async function _cloneAndTar(parsed: ParsedGitURI, token?: string): Promise<TarOu
       status.update("Fetched.");
     }
 
-    if (parsed.subdir) {
+    if (files && files.length > 0) {
+      status.update(`Sparse checkout ${files.length} files...`);
+      await gitExecIn(["sparse-checkout", "set", ...files]);
+      await gitExecIn(["checkout"]);
+    } else if (parsed.subdir) {
       status.update(`Sparse checkout ${parsed.subdir}...`);
       await gitExecIn(["sparse-checkout", "set", parsed.subdir]);
       await gitExecIn(["checkout"]);
@@ -177,7 +186,8 @@ async function _cloneAndTar(parsed: ParsedGitURI, token?: string): Promise<TarOu
     status.update("Packing...");
 
     // Create tar archive from the cloned repo (excluding .git)
-    const tarDir = parsed.subdir ? join(tmpDir, parsed.subdir) : tmpDir;
+    const tarDir =
+      parsed.subdir && !(files && files.length > 0) ? join(tmpDir, parsed.subdir) : tmpDir;
     const { create } = await import("tar");
     status.done();
     const pack = create(
