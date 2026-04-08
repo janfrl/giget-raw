@@ -138,12 +138,15 @@ export async function downloadTemplate(
   // Extract template
   const cwd = resolve(options.cwd || ".");
   const extractPath = resolve(cwd, options.dir || template.defaultDir);
+  const strategy = options.strategy || "overwrite";
+
   if (options.forceClean) {
     await rm(extractPath, { recursive: true, force: true });
   }
   if (
     !options.force &&
     !options.files &&
+    !options.strategy &&
     existsSync(extractPath) &&
     readdirSync(extractPath).length > 0
   ) {
@@ -156,10 +159,14 @@ export async function downloadTemplate(
   const s = Date.now();
   const subdir = template.subdir?.replace(/^\//, "") || "";
   const { extract } = await import("tar");
+  debug(`Extracting tarball to: ${extractPath} (strategy: ${strategy})`);
+
+  const stats = { extracted: 0, skipped: 0 };
+
   await extract({
     file: tarPath,
     cwd: extractPath,
-    keep: options.strategy === "skip",
+    keep: strategy === "skip",
     onReadEntry(entry) {
       entry.path = entry.path.split("/").splice(1).join("/");
       if (subdir) {
@@ -173,16 +180,36 @@ export async function downloadTemplate(
       }
 
       if (entry.path && options.files && options.files.length > 0) {
+        let matched = false;
         for (const file of options.files) {
           if (entry.path === file || entry.path.startsWith(file + "/")) {
-            return;
+            matched = true;
+            break;
           }
         }
-        entry.path = "";
+        if (!matched) {
+          entry.path = "";
+        }
+      }
+
+      if (entry.path) {
+        const exists = existsSync(resolve(extractPath, entry.path));
+        if (strategy === "skip" && exists) {
+          stats.skipped++;
+          if (!entry.path.endsWith("/")) {
+            debug(`- \x1B[90m${entry.path} (skipped)\x1B[0m`);
+          }
+        } else {
+          stats.extracted++;
+          debug(`- \x1B[32m${entry.path}\x1B[0m (extracted)`);
+        }
       }
     },
   });
-  debug(`Extracted to ${extractPath} in ${Date.now() - s}ms`);
+
+  debug(
+    `Extracted ${stats.extracted} files, skipped ${stats.skipped} files in ${Date.now() - s}ms`,
+  );
 
   if (options.install) {
     debug("Installing dependencies...");

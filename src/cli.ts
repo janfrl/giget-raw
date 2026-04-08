@@ -33,7 +33,7 @@ const mainCommand = defineCommand({
     },
     force: {
       type: "boolean",
-      description: "Clone to existing directory even if exists",
+      description: "Clone to existing directory and forcefully overwrite all files",
     },
     forceClean: {
       type: "boolean",
@@ -66,7 +66,7 @@ const mainCommand = defineCommand({
     },
     files: {
       type: "string",
-      description: "List of files (paths) to download via raw URL (comma-separated)",
+      description: "List of files (paths) to download (comma-separated)",
       valueHint: "file1,file2",
     },
   },
