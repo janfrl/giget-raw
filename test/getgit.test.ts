@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { rm, mkdir, writeFile } from "node:fs/promises";
+import { rm, mkdir, writeFile, readFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { expect, it, describe, beforeAll } from "vitest";
 import { downloadTemplate } from "../src/index.ts";
@@ -108,10 +108,64 @@ describe("downloadTemplate", () => {
 
   it("do not clone to exisiting dir", async () => {
     const destinationDirectory = resolve(__dirname, ".tmp/exisiting");
-    await mkdir(destinationDirectory).catch(() => {});
+    await mkdir(destinationDirectory, { recursive: true }).catch(() => {});
     await writeFile(resolve(destinationDirectory, "test.txt"), "test");
     await expect(
       downloadTemplate("gh:unjs/template", { dir: destinationDirectory }),
     ).rejects.toThrow("already exists");
+  });
+
+  it("clone specific files from unjs/giget", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-files");
+    const { dir } = await downloadTemplate("gh:unjs/giget", {
+      dir: destinationDirectory,
+      files: ["README.md", "package.json"],
+      preferOffline,
+    });
+    expect(existsSync(resolve(dir, "README.md"))).toBe(true);
+    expect(existsSync(resolve(dir, "package.json"))).toBe(true);
+    expect(existsSync(resolve(dir, "src"))).toBe(false);
+  });
+
+  it("clone specific files from unjs/giget using git provider", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-files-git");
+    const { dir } = await downloadTemplate("git:unjs/giget", {
+      dir: destinationDirectory,
+      files: ["README.md", "package.json"],
+      preferOffline,
+    });
+    expect(existsSync(resolve(dir, "README.md"))).toBe(true);
+    expect(existsSync(resolve(dir, "package.json"))).toBe(true);
+    expect(existsSync(resolve(dir, "src"))).toBe(false);
+  });
+
+  it("clone with strategy skip", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-strategy-skip");
+    await mkdir(destinationDirectory, { recursive: true });
+    await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
+
+    const { dir } = await downloadTemplate("gh:unjs/giget", {
+      dir: destinationDirectory,
+      files: ["README.md"],
+      strategy: "skip",
+      preferOffline,
+    });
+    const content = await readFile(resolve(dir, "README.md"), "utf-8");
+    expect(content).toBe("EXISTING");
+  });
+
+  it("clone with strategy overwrite", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-strategy-overwrite");
+    await mkdir(destinationDirectory, { recursive: true });
+    await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
+
+    const { dir } = await downloadTemplate("gh:unjs/giget", {
+      dir: destinationDirectory,
+      files: ["README.md"],
+      strategy: "overwrite",
+      preferOffline,
+    });
+    const content = await readFile(resolve(dir, "README.md"), "utf-8");
+    expect(content).not.toBe("EXISTING");
   });
 });
