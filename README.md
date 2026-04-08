@@ -200,8 +200,7 @@ const { source, dir } = await downloadTemplate("rainbow:one", {
 const myorg: TemplateProvider = async (input, { auth }) => {
   return {
     name: input,
-    tar: async () =>
-      (await fetch(`http://my-org.internal/archive/${input}.tar.gz`)).body!,
+    tar: async () => (await fetch(`http://my-org.internal/archive/${input}.tar.gz`)).body!,
   };
 };
 
@@ -243,8 +242,8 @@ Subdirectories use sparse checkout with `--filter=blob:none` to avoid downloadin
 
 **Environment variables:**
 
-| Variable | Description |
-| --- | --- |
+| Variable         | Description                                         |
+| ---------------- | --------------------------------------------------- |
 | `GIGET_GIT_HOST` | Default HTTPS host (default: `https://github.com/`) |
 
 ## Providing token for private repositories
