@@ -25,7 +25,7 @@ export interface DownloadTemplateOptions {
   auth?: string;
   install?: boolean | InstallOptions;
   silent?: boolean;
-  strategy?: "skip" | "overwrite";
+  conflict?: "skip" | "overwrite";
   files?: string[];
 }
 
@@ -138,7 +138,7 @@ export async function downloadTemplate(
   // Extract template
   const cwd = resolve(options.cwd || ".");
   const extractPath = resolve(cwd, options.dir || template.defaultDir);
-  const strategy = options.strategy || "overwrite";
+  const conflict = options.conflict || "overwrite";
 
   if (options.forceClean) {
     await rm(extractPath, { recursive: true, force: true });
@@ -146,12 +146,12 @@ export async function downloadTemplate(
   if (
     !options.force &&
     !options.files &&
-    !options.strategy &&
+    !options.conflict &&
     existsSync(extractPath) &&
     readdirSync(extractPath).length > 0
   ) {
     throw new Error(
-      `Destination ${extractPath} already exists and is not empty. Use --force, --strategy=overwrite to overwrite, or --strategy=skip to skip.`,
+      `Destination ${extractPath} already exists and is not empty. Use --force, --conflict=overwrite to overwrite, or --conflict=skip to skip.`,
     );
   }
   await mkdir(extractPath, { recursive: true });
@@ -159,14 +159,14 @@ export async function downloadTemplate(
   const s = Date.now();
   const subdir = template.subdir?.replace(/^\//, "") || "";
   const { extract } = await import("tar");
-  debug(`Extracting tarball to: ${extractPath} (strategy: ${strategy})`);
+  debug(`Extracting tarball to: ${extractPath} (conflict resolution: ${conflict})`);
 
   const stats = { extracted: 0, skipped: 0 };
 
   await extract({
     file: tarPath,
     cwd: extractPath,
-    keep: strategy === "skip",
+    keep: conflict === "skip",
     onReadEntry(entry) {
       entry.path = entry.path.split("/").splice(1).join("/");
       if (subdir) {
@@ -194,7 +194,7 @@ export async function downloadTemplate(
 
       if (entry.path) {
         const exists = existsSync(resolve(extractPath, entry.path));
-        if (strategy === "skip" && exists) {
+        if (conflict === "skip" && exists) {
           stats.skipped++;
           if (!entry.path.endsWith("/")) {
             debug(`- \x1B[90m${entry.path} (skipped)\x1B[0m`);

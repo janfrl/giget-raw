@@ -150,8 +150,8 @@ describe("downloadTemplate", () => {
     expect(existsSync(resolve(dir, "nuxt.json"))).toBe(false);
   });
 
-  it("clone with strategy skip in non-empty directory", async () => {
-    const destinationDirectory = resolve(__dirname, ".tmp/cloned-strategy-skip-nonempty");
+  it("clone with conflict skip in non-empty directory", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-conflict-skip-nonempty");
     await mkdir(destinationDirectory, { recursive: true });
     await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
     await writeFile(resolve(destinationDirectory, "OTHER.txt"), "OTHER");
@@ -159,7 +159,7 @@ describe("downloadTemplate", () => {
     const { dir } = await downloadTemplate("gh:unjs/giget", {
       dir: destinationDirectory,
       files: ["README.md", "package.json"],
-      strategy: "skip",
+      conflict: "skip",
       preferOffline,
     });
     const readme = await readFile(resolve(dir, "README.md"), "utf-8");
@@ -168,15 +168,15 @@ describe("downloadTemplate", () => {
     expect(existsSync(resolve(dir, "OTHER.txt"))).toBe(true);
   });
 
-  it("clone with strategy overwrite", async () => {
-    const destinationDirectory = resolve(__dirname, ".tmp/cloned-strategy-overwrite");
+  it("clone with conflict overwrite", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-conflict-overwrite");
     await mkdir(destinationDirectory, { recursive: true });
     await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
 
     const { dir } = await downloadTemplate("gh:unjs/giget", {
       dir: destinationDirectory,
       files: ["README.md"],
-      strategy: "overwrite",
+      conflict: "overwrite",
       preferOffline,
     });
     const content = await readFile(resolve(dir, "README.md"), "utf-8");

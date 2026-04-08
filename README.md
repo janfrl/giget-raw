@@ -53,7 +53,7 @@ npx giget@latest <template> [<dir>] [...options]
 - `--auth`: Custom Authorization token to use for downloading template. (Can be overridden with `GIGET_AUTH` environment variable).
 - `--install`: Install dependencies after cloning using [unjs/nypm](https://github.com/unjs/nypm).
 - `--files <paths...>`: List of file or folder paths to fetch. Use comma-separated values (e.g., `--files README.md,package.json`).
-- `--strategy <strategy>`: Strategy for existing file (`skip` | `overwrite`).
+- `--conflict <action>`: Action to take when an individual file already exists (`skip` | `overwrite`).
 
 ### Examples
 
@@ -62,7 +62,7 @@ npx giget@latest <template> [<dir>] [...options]
 npx giget@latest nuxt
 
 # Sync specific files from unjs/giget
-npx giget@latest gh:unjs/giget --files README.md,package.json --strategy overwrite
+npx giget@latest gh:unjs/giget --files README.md,package.json --conflict overwrite
 ```
 # Clone the main branch of github.com/unjs/template to unjs-template directory
 npx giget@latest gh:unjs/template

@@ -60,9 +60,9 @@ const mainCommand = defineCommand({
       type: "boolean",
       description: "Show verbose debugging info",
     },
-    strategy: {
+    conflict: {
       type: "string",
-      description: "Strategy for existing file: skip or overwrite",
+      description: "Action to take when an individual file already exists (skip or overwrite)",
     },
     files: {
       type: "string",
@@ -91,7 +91,7 @@ const mainCommand = defineCommand({
         auth: args.auth,
         install: args.install,
         files: filesList,
-        strategy: args.strategy as "skip" | "overwrite",
+        conflict: args.conflict as "skip" | "overwrite",
       });
     } catch (error) {
       if (args.verbose) {
