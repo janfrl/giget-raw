@@ -66,8 +66,8 @@ const mainCommand = defineCommand({
     },
     files: {
       type: "string",
-      description: "List of files (paths) to download via raw URL",
-      multiple: true,
+      description: "List of files (paths) to download via raw URL (comma-separated)",
+      valueHint: "file1,file2",
     },
   },
   run: async ({ args }) => {
@@ -76,8 +76,9 @@ const mainCommand = defineCommand({
     }
 
     // Normalize files argument into string[] if provided
-    const filesList: string[] | undefined =
-      args.files === undefined ? undefined : Array.isArray(args.files) ? args.files : [args.files];
+    const filesList: string[] | undefined = args.files
+      ? args.files.split(",").map((f) => f.trim())
+      : undefined;
 
     let r: Awaited<ReturnType<typeof downloadTemplate>>;
     try {

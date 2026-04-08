@@ -52,6 +52,8 @@ npx giget@latest <template> [<dir>] [...options]
 - `--cwd`: Set the current working directory to resolve dirs relative to it.
 - `--auth`: Custom Authorization token to use for downloading template. (Can be overridden with `GIGET_AUTH` environment variable).
 - `--install`: Install dependencies after cloning using [unjs/nypm](https://github.com/unjs/nypm).
+- `--files <paths...>`: List of file or folder paths to fetch. Use comma-separated values (e.g., `--files README.md,package.json`).
+- `--strategy <strategy>`: Strategy for existing file (`skip` | `overwrite`).
 
 ### Examples
 
@@ -59,6 +61,9 @@ npx giget@latest <template> [<dir>] [...options]
 # Clone nuxt starter from giget template registry
 npx giget@latest nuxt
 
+# Sync specific files from unjs/giget
+npx giget@latest gh:unjs/giget --files README.md,package.json --strategy overwrite
+```
 # Clone the main branch of github.com/unjs/template to unjs-template directory
 npx giget@latest gh:unjs/template
 
@@ -162,6 +167,8 @@ const { source, dir } = await downloadTemplate("github:unjs/template");
   - `registry`: (string or false) Set to `false` to disable registry. Set to a URL string (without trailing slash) for custom registry. (Can be overridden with `GIGET_REGISTRY` environment variable).
   - `cwd`: (string) Current working directory to resolve dirs relative to it.
   - `auth`: (string) Custom Authorization token to use for downloading template. (Can be overridden with `GIGET_AUTH` environment variable).
+  - `files`: (string[]) List of file or folder paths to fetch.
+  - `strategy`: (string) Strategy for existing file (`skip` | `overwrite`).
 
 **Return value:**
 
@@ -238,7 +245,7 @@ gh+git:unjs/template                 # Host shorthand (github.com)
 gitlab+git:org/repo                  # Host shorthand (gitlab.com)
 ```
 
-Subdirectories use sparse checkout with `--filter=blob:none` to avoid downloading the full repository.
+Subdirectories and multiple files use sparse checkout with `--filter=blob:none` to avoid downloading the full repository.
 
 **Environment variables:**
 
