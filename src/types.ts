@@ -27,5 +27,5 @@ export interface TemplateInfo {
 
 export type TemplateProvider = (
   input: string,
-  options: { auth?: string },
+  options: { auth?: string; files?: string[] },
 ) => TemplateInfo | Promise<TemplateInfo> | null;

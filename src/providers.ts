@@ -40,6 +40,7 @@ export const http: TemplateProvider = async (input, options) => {
     headers: {
       Authorization: options.auth ? `Bearer ${options.auth}` : undefined,
     },
+    raw: (path: string) => new URL(path, url.href).href,
   };
 };
 
@@ -77,6 +78,7 @@ export const github: TemplateProvider = (input, options) => {
       parsed.repo
     }/tree/${parsed.ref}${parsed.subdir}`,
     tar: `${githubAPIURL}/repos/${parsed.repo}/tarball/${parsed.ref}`,
+    raw: (path: string) => `https://raw.githubusercontent.com/${parsed.repo}/${parsed.ref}/${path}`,
   };
 };
 
@@ -94,6 +96,7 @@ export const gitlab: TemplateProvider = (input, options) => {
     },
     url: `${gitlab}/${parsed.repo}/tree/${parsed.ref}${parsed.subdir}`,
     tar: `${gitlab}/${parsed.repo}/-/archive/${parsed.ref}.tar.gz`,
+    raw: (path: string) => `${gitlab}/${parsed.repo}/-/raw/${parsed.ref}/${path}`,
   };
 };
 
@@ -108,6 +111,7 @@ export const bitbucket: TemplateProvider = (input, options) => {
     },
     url: `https://bitbucket.com/${parsed.repo}/src/${parsed.ref}${parsed.subdir}`,
     tar: `https://bitbucket.org/${parsed.repo}/get/${parsed.ref}.tar.gz`,
+    raw: (path: string) => `https://bitbucket.org/${parsed.repo}/raw/${parsed.ref}/${path}`,
   };
 };
 
@@ -122,6 +126,7 @@ export const sourcehut: TemplateProvider = (input, options) => {
     },
     url: `https://git.sr.ht/~${parsed.repo}/tree/${parsed.ref}/item${parsed.subdir}`,
     tar: `https://git.sr.ht/~${parsed.repo}/archive/${parsed.ref}.tar.gz`,
+    raw: (path: string) => `https://git.sr.ht/~${parsed.repo}/raw/${parsed.ref}/${path}`,
   };
 };
 
