@@ -182,4 +182,37 @@ describe("downloadTemplate", () => {
     const content = await readFile(resolve(dir, "README.md"), "utf-8");
     expect(content).not.toBe("EXISTING");
   });
+
+  it("clone with force: true and conflict: skip", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-force-conflict-skip");
+    await mkdir(destinationDirectory, { recursive: true });
+    await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
+
+    const { dir } = await downloadTemplate("gh:unjs/giget", {
+      dir: destinationDirectory,
+      files: ["README.md", "package.json"],
+      force: true,
+      conflict: "skip",
+      preferOffline,
+    });
+    const content = await readFile(resolve(dir, "README.md"), "utf-8");
+    expect(content).toBe("EXISTING");
+    expect(existsSync(resolve(dir, "package.json"))).toBe(true);
+  });
+
+  it("clone with force: true (overwrites by default)", async () => {
+    const destinationDirectory = resolve(__dirname, ".tmp/cloned-force-default");
+    await mkdir(destinationDirectory, { recursive: true });
+    await writeFile(resolve(destinationDirectory, "README.md"), "EXISTING");
+
+    const { dir } = await downloadTemplate("gh:unjs/giget", {
+      dir: destinationDirectory,
+      files: ["README.md", "package.json"],
+      force: true,
+      preferOffline,
+    });
+    const content = await readFile(resolve(dir, "README.md"), "utf-8");
+    expect(content).not.toBe("EXISTING");
+    expect(existsSync(resolve(dir, "package.json"))).toBe(true);
+  });
 });
