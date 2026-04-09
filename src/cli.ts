@@ -33,7 +33,7 @@ const mainCommand = defineCommand({
     },
     force: {
       type: "boolean",
-      description: "Clone to existing directory and forcefully overwrite all files",
+      description: "Clone to existing directory even if exists",
     },
     forceClean: {
       type: "boolean",
