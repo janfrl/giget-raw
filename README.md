@@ -61,9 +61,6 @@ npx giget@latest <template> [<dir>] [...options]
 # Clone nuxt starter from giget template registry
 npx giget@latest nuxt
 
-# Sync specific files from unjs/giget
-npx giget@latest gh:unjs/giget --files README.md,package.json --conflict overwrite
-
 # Clone the main branch of github.com/unjs/template to unjs-template directory
 npx giget@latest gh:unjs/template
 
@@ -75,6 +72,9 @@ npx giget@latest gh:unjs/template#dev
 
 # Clone /test directory from main branch
 npx giget@latest gh:unjs/template/test
+
+# Sync specific files from a template repo (overwrite existing)
+npx giget@latest gh:unjs/template --files README.md,test --conflict overwrite
 
 # Clone from gitlab
 npx giget@latest gitlab:unjs/template
