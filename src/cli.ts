@@ -80,6 +80,10 @@ const mainCommand = defineCommand({
       ? args.files.split(",").map((f) => f.trim())
       : undefined;
 
+    if (args.conflict && !["skip", "overwrite"].includes(args.conflict)) {
+      throw new Error(`Invalid conflict strategy: ${args.conflict}. Use "skip" or "overwrite".`);
+    }
+
     let r: Awaited<ReturnType<typeof downloadTemplate>>;
     try {
       r = await downloadTemplate(args.template, {

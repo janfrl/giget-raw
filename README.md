@@ -63,7 +63,7 @@ npx giget@latest nuxt
 
 # Sync specific files from unjs/giget
 npx giget@latest gh:unjs/giget --files README.md,package.json --conflict overwrite
-```
+
 # Clone the main branch of github.com/unjs/template to unjs-template directory
 npx giget@latest gh:unjs/template
 
@@ -168,7 +168,7 @@ const { source, dir } = await downloadTemplate("github:unjs/template");
   - `cwd`: (string) Current working directory to resolve dirs relative to it.
   - `auth`: (string) Custom Authorization token to use for downloading template. (Can be overridden with `GIGET_AUTH` environment variable).
   - `files`: (string[]) List of file or folder paths to fetch.
-  - `strategy`: (string) Strategy for existing file (`skip` | `overwrite`).
+  - `conflict`: (string) Action to take when an individual file already exists (`skip` | `overwrite`).
 
 **Return value:**
 

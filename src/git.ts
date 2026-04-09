@@ -199,6 +199,9 @@ async function _cloneAndTar(
     status.update("Packing...");
 
     // Create tar archive from the cloned repo (excluding .git)
+    // If files are specified, they are already resolved relative to the repo root
+    // (using subdir prefix if needed), so we tar from the root.
+    // If only a subdir is specified, we tar from within that subdir.
     const tarDir =
       parsed.subdir && !(files && files.length > 0) ? join(tmpDir, parsed.subdir) : tmpDir;
     const { create } = await import("tar");

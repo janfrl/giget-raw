@@ -138,7 +138,7 @@ export async function downloadTemplate(
   // Extract template
   const cwd = resolve(options.cwd || ".");
   const extractPath = resolve(cwd, options.dir || template.defaultDir);
-  const conflict = options.conflict || "overwrite";
+  const conflict = options.conflict || (options.force ? "overwrite" : "skip");
 
   if (options.forceClean) {
     await rm(extractPath, { recursive: true, force: true });
@@ -193,15 +193,19 @@ export async function downloadTemplate(
       }
 
       if (entry.path) {
+        // Note: existsSync check is purely for logging/stats.
+        // The actual skipping is handled by the `keep` option in tar.extract.
         const exists = existsSync(resolve(extractPath, entry.path));
         if (conflict === "skip" && exists) {
-          stats.skipped++;
           if (!entry.path.endsWith("/")) {
+            stats.skipped++;
             debug(`- \x1B[90m${entry.path} (skipped)\x1B[0m`);
           }
         } else {
-          stats.extracted++;
-          debug(`- \x1B[32m${entry.path}\x1B[0m (extracted)`);
+          if (!entry.path.endsWith("/")) {
+            stats.extracted++;
+            debug(`- \x1B[32m${entry.path}\x1B[0m (extracted)`);
+          }
         }
       }
     },
